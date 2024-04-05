@@ -33,7 +33,7 @@ for i in range(frame_n):
         scribus.setFontSize(font_size, frame)
 
     # if the frame doesn't overflow, increase the font size until it just fits
-    while scribus.textOverflows(frame) == 0 and font_size < 100:  # assuming 100 as the maximum reasonable font size
+    while scribus.textOverflows(frame) == 0 and font_size < 1000:  # assuming 1000 as the maximum reasonable font size
         font_size += 1
         scribus.setFontSize(font_size, frame)
 
