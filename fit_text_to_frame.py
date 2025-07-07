@@ -1,42 +1,55 @@
+
 import sys
 try:
-   import scribus
+    import scribus  
 except ImportError:
-   print("This script only works from within Scribus")
-   sys.exit(1)
-
-# check that at least one text frame is selected
-frame_n = scribus.selectionCount()
-if frame_n == 0:
-    scribus.messageBox('Error:', 'No frame selected')
+    print("This script only works from within Scribus.")
     sys.exit(1)
 
-# iterate over each selected frame
-for i in range(frame_n):
+
+try:
+    scribus.haveDoc()
+except NameError:
+    print("This script only works from within Scribus.")
+    sys.exit(1)
+
+
+baselineWidth = 100.0       # mm
+baselineFontSize = 47.6      # pt
+ratio = baselineFontSize / baselineWidth
+
+
+count = scribus.selectionCount()
+if count == 0:
+    scribus.messageBox('Error', 'No frame selected')
+    sys.exit(1)
+
+
+for i in range(count):
     frame = scribus.getSelectedObject(i)
     try:
-        char_n = scribus.getTextLength(frame)
+        scribus.getTextLength(frame)
     except scribus.WrongFrameTypeError:
-        scribus.messageBox('Error:', 'You may only adjust text frames')
+        scribus.messageBox('Error', 'Only text frames are supported')
         continue
 
-    if char_n == 0:
-        scribus.messageBox('Error:', 'You can\'t adjust an empty frame')
-        continue
+    # get current frame width
+    x, y, frameWidth, frameHeight = scribus.getObjectGeometry(frame)
 
-    # get the current font size
-    font_size = scribus.getFontSize(frame)
+    
+    desiredSize = frameWidth * ratio
+    scribus.setFontSize(desiredSize, frame, 0, scribus.ALL)
 
-    # if the frame overflows, decrease the font size until it fits
-    while scribus.textOverflows(frame) > 0 and font_size > 0:
-        font_size -= 1
-        scribus.setFontSize(font_size, frame)
+    while scribus.getTextLines(frame) > 1 and desiredSize > 0:
+        desiredSize -= 0.1
+        scribus.setFontSize(desiredSize, frame, 0, scribus.ALL)
+    # grow
+    while scribus.textOverflows(frame) == 0 and scribus.getTextLines(frame) == 1:
+        desiredSize += 0.1
+        scribus.setFontSize(desiredSize, frame, 0, scribus.ALL)
+    
+    desiredSize -= 0.1
+    scribus.setFontSize(desiredSize, frame, 0, scribus.ALL)
 
-    # if the frame doesn't overflow, increase the font size until it just fits
-    while scribus.textOverflows(frame) == 0 and font_size < 1000:  # assuming 1000 as the maximum reasonable font size
-        font_size += 1
-        scribus.setFontSize(font_size, frame)
-
-    # undo the latest 1pt step to ensure the text fits the frame
-    font_size -= 1
-    scribus.setFontSize(font_size, frame)
+# refresh view
+scribus.redrawAll()
